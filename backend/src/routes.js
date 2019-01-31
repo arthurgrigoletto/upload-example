@@ -2,9 +2,18 @@ const routes = require('express').Router();
 const multer = require('multer');
 const multerCongig = require('./config/multer');
 
-routes.post('/posts', multer(multerCongig).single('file'), (req, res) => {
-  console.log(req.file);
-  return res.json({ hello: 'arthur' });
+const Post = require('./models/Post');
+
+routes.post('/posts', multer(multerCongig).single('file'), async (req, res) => {
+  const { originalname: name, size, filename: key } = req.file;
+
+  const post = await Post.create({
+    name,
+    size,
+    key,
+    url:''
+  })
+  return res.json(post);
 });
 
 module.exports = routes;
