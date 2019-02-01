@@ -1,14 +1,31 @@
+require('dotenv').config();
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
+const aws = require('aws-sdk');
+const multerS3 = require('multer-s3');
 
-module.exports = {
-  dest: path.resolve(__dirname, '..', '..', 'tmp', 'uploads'),
-  storage: multer.diskStorage({
+const storageTypes = {
+  local: multer.diskStorage({
     destination: (req, file, callback) => {
       callback(null, path.resolve(__dirname, '..', '..', 'tmp', 'uploads'));
     },
     filename: (req, file, callback) => {
+      crypto.randomBytes(16, (err, hash) => {
+        if (err) callback(err);
+
+        file.key  = `${hash.toString('hex')}-${file.originalname}`;
+
+        callback(null, file.key);
+      });
+    }
+  }),
+  s3: multerS3({
+    s3: new aws.S3(),
+    bucket: 'uploadexample-agn',
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    acl: 'public-read',
+    key: (req, file, callback) => {
       crypto.randomBytes(16, (err, hash) => {
         if (err) callback(err);
 
@@ -17,7 +34,11 @@ module.exports = {
         callback(null, fileName);
       });
     }
-  }),
+  })
+}
+module.exports = {
+  dest: path.resolve(__dirname, '..', '..', 'tmp', 'uploads'),
+  storage: storageTypes['s3'],
   limits: {
     fileSize: 2 * 1024 * 1024
   },
